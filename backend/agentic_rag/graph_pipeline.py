@@ -1,11 +1,11 @@
 from langgraph.graph import StateGraph
 from typing import TypedDict
 
-from planner import plan_retrieval
-from sql_tool import run_sql
-from vector_tool import run_vector
-from graph_tool import run_graph
-from answer import generate_answer
+from backend.agentic_rag.planner import plan_retrieval
+from backend.agentic_rag.sql_tool import run_sql
+from backend.agentic_rag.vector_tool import run_vector
+from backend.agentic_rag.graph_tool import get_graph_context
+from backend.agentic_rag.answer import generate_answer
 
 class AgentState(TypedDict):
     query: str
@@ -15,7 +15,9 @@ class AgentState(TypedDict):
 
 
 def planner_node(state):
-    return {"plan": plan_retrieval(state["query"])}
+    result = plan_retrieval(state["query"])
+    print(result)
+    return {"plan": result }
 
 
 def retrieval_node(state):
@@ -29,7 +31,7 @@ def retrieval_node(state):
         context_parts.append("[VECTOR]\n" + run_vector(plan["vector_intent"]))
 
     if plan["use_graph"]:
-        context_parts.append("[GRAPH]\n" + run_graph(plan["graph_intent"]))
+        context_parts.append("[GRAPH]\n" + get_graph_context(plan["graph_intent"]))
 
     return {"context": "\n\n".join(context_parts)}
 
@@ -51,9 +53,13 @@ graph.add_edge("retriever", "answer")
 
 agent = graph.compile()
 
+def run_agent(query: str):
+    """Single public entry point for FastAPI"""
+    return agent.invoke({"query": query})
 
-result = agent.invoke({
-    "query": "Why did headset sales drop in South India?"
-})
 
-print(result["answer"])
+if __name__ == "__main__":
+    result = agent.invoke({
+        "query": "What is the total sales of smartx headset?",
+    })
+    print(result["answer"])

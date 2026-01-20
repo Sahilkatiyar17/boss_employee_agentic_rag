@@ -13,9 +13,11 @@ load_dotenv()
 # -----------------------------
 
 # 1. Initialize the loader with the path to your file
-loader = PyPDFLoader(r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\Company_Overview.pdf")
-docs = loader.load()
+loader = PyPDFLoader(r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\sodapdf-converted.pdf")
 
+# 2. Load the data into Document objects
+# This returns a list: [Document(page_content='...', metadata={'source': '...', 'page': 0}), ...]
+docs = loader.load()
 
 
 # --------------------------------
@@ -23,13 +25,14 @@ docs = loader.load()
 # --------------------------------
 
 
+
 # --------------------------------
 # 3. CHUNKING (IMPORTANT)
 # --------------------------------
 
 text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=100
+    chunk_size=1200,
+    chunk_overlap=150
 )
 
 chunked_docs = text_splitter.split_documents(docs)
@@ -47,7 +50,8 @@ embeddings = HuggingFaceEmbeddings(
 # --------------------------------
 
 persist_directory = (
-    r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\chroma"
+    "F:/sahil/2025-2026/Project_DS/"
+    "boss_employee_agentic_rag/backend/data/graph_chroma"
 )
 
 vector_store = Chroma.from_documents(

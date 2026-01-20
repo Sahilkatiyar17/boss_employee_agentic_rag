@@ -1,24 +1,35 @@
 # Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Virtual environment
+# Virtual env & secrets
 venv/
-.env/
-
-# Environment files
 .env
 .env.*
 
-# OS
-.DS_Store
-Thumbs.db
+# Data (IMPORTANT)
+data/
+datasets/
+raw_data/
+processed_data/
+backend/data 
+# Common data formats
+*.csv
+*.tsv
+*.json
+*.parquet
+*.pkl
+*.h5
+*.npy
+*.npz
+*.zip
+*.tar
+*.gz
 
 # IDE
 .vscode/
 .idea/
 
-# Logs
-*.log
+# OS
+.DS_Store
+Thumbs.db

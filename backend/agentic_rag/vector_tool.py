@@ -7,7 +7,7 @@ from langchain_chroma import Chroma
 
 persist_directory = (
     "F:/sahil/2025-2026/Project_DS/"
-    "boss-employee-agentic-rag/backend/data/chroma"
+    "boss_employee_agentic_rag/backend/data/graph_chroma"
 )
 
 embeddings = HuggingFaceEmbeddings(
@@ -46,7 +46,7 @@ def run_vector(intent: dict) -> str:
         query=query,
         k=5
     )
-
+    
     return "\n".join(
         [doc.page_content for doc in docs]
     )
@@ -59,4 +59,4 @@ intent = {
         ]
     }
 
-print(run_vector(intent))
+#print(run_vector(intent))
