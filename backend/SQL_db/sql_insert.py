@@ -2,120 +2,103 @@ import sqlite3
 import random
 from datetime import datetime, timedelta
 
-conn = sqlite3.connect(r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\company_olap.db")
-cursor = conn.cursor()
+DB_PATH = r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\analytics_flat.db"
 
-# -------------------------
-# CONSTANTS
-# -------------------------
 products = [
-    ("SmartX Headset", "Audio", "Electronics", "Headset", "SmartX", "One-time"),
-    ("SmartX Watch", "Wearable", "Electronics", "Watch", "SmartX", "One-time"),
-    ("SmartX Fitness Band", "Wearable", "Electronics", "Band", "SmartX", "Subscription"),
-    ("SmartX Earbuds", "Audio", "Electronics", "Earbuds", "SmartX", "One-time"),
-    ("SmartX VR Glasses", "VR", "Gaming", "Glasses", "SmartX", "One-time"),
-    ("SmartX Smart Glasses", "AR", "Wearable", "Glasses", "SmartX", "Subscription"),
+    ("SmartX Watch", "Electronics", "Wearable", "SmartX"),
+    ("Vision AR Glasses", "Electronics", "AR/VR", "VisionTech"),
+    ("Power Laptop", "Computers", "Laptop", "VoltPC"),
+    ("FitBand Pro", "Electronics", "Wearable", "FitBand"),
+    ("HomeHub Speaker", "Electronics", "Smart Home", "HomeHub"),
 ]
 
-regions = ["North India", "South India", "West India", "East India"]
-channels = ["Instagram", "Google Ads", "TV", "YouTube", "Website", "Retail"]
-departments = ["Sales", "Marketing", "Finance", "Support"]
+regions = [
+    ("North India", "India", "Delhi"),
+    ("West India", "India", "Maharashtra"),
+    ("South India", "India", "Karnataka"),
+    ("East India", "India", "West Bengal")
+]
 
-# -------------------------
-# INSERT DIMENSIONS
-# -------------------------
-cursor.executemany("""
-INSERT INTO dim_product(product_name, product_type, category, sub_category, brand, pricing_model)
-VALUES (?,?,?,?,?,?)
-""", products)
+channels = ["Retail", "Website", "Instagram", "Enterprise"]
+departments = ["Sales", "Marketing", "Partnerships"]
 
-for r in regions:
-    cursor.execute("""
-    INSERT INTO dim_region(country, state, city, market_region)
-    VALUES (?,?,?,?)
-    """, ("India", "N/A", "N/A", r))
+start_date = datetime(2022, 1, 1)
+end_date = datetime(2024, 12, 31)
 
-for ch in channels:
-    cursor.execute("INSERT INTO dim_channel VALUES (NULL,?,?)", (ch, "Digital"))
+# 🎯 Reduced target rows
+rows_to_insert = 100_000
 
-for d in departments:
-    cursor.execute("INSERT INTO dim_department VALUES (NULL,?,?)", (d, f"CC_{d}"))
+def seasonal_multiplier(month):
+    if month in [10, 11]: return 1.5   # festive boost
+    if month in [6, 7]: return 1.2     # summer bump
+    return 1.0
 
-for i in range(1, 21):
-    cursor.execute("""
-    INSERT INTO dim_employee VALUES (NULL,?,?,?,?)
-    """, (f"Employee_{i}", random.choice(["Sales Exec","Manager","Support"]),
-          random.choice(departments), random.choice(["Junior","Mid","Senior"])))
+conn = sqlite3.connect(DB_PATH)
+cursor = conn.cursor()
 
-for i in range(1, 1001):
-    cursor.execute("""
-    INSERT INTO dim_customer VALUES (NULL,?,?,?,?,?)
-    """, (f"Customer_{i}", random.choice(["New","Returning"]),
-          random.choice(["Tech","Retail","Healthcare","Education"]),
-          random.choice(["Small","Medium","Large"]),
-          random.choice(["Enterprise","SMB","Individual"])))
+batch = []
 
-# -------------------------
-# DATE DIMENSION (2 YEARS)
-# -------------------------
-start = datetime(2024,1,1)
-for i in range(730):
-    d = start + timedelta(days=i)
-    cursor.execute("""
-    INSERT INTO dim_date VALUES (NULL,?,?,?,?,?,?,?)
-    """, (d.strftime("%Y-%m-%d"), d.day, d.isocalendar()[1],
-          d.month, (d.month-1)//3 + 1, d.year, int(d.weekday()>=5)))
+for i in range(rows_to_insert):
+    date = start_date + timedelta(days=random.randint(0, (end_date - start_date).days))
+    year = date.year
+    month = date.month
+    quarter = (month - 1) // 3 + 1
+    is_weekend = 1 if date.weekday() >= 5 else 0
 
-conn.commit()
+    product = random.choice(products)
+    region = random.choice(regions)
+    channel = random.choice(channels)
+    department = random.choice(departments)
 
-# -------------------------
-# FACT SALES (~80k rows)
-# -------------------------
-cursor.execute("SELECT date_id FROM dim_date")
-date_ids = [x[0] for x in cursor.fetchall()]
+    base_qty = random.randint(1, 6)  # smaller base = fewer rows impact
+    season = seasonal_multiplier(month)
+    weekend_boost = 1.15 if is_weekend else 1.0
 
-cursor.execute("SELECT product_id FROM dim_product")
-product_ids = [x[0] for x in cursor.fetchall()]
+    quantity = max(1, int(base_qty * season * weekend_boost))
 
-cursor.execute("SELECT customer_id FROM dim_customer")
-customer_ids = [x[0] for x in cursor.fetchall()]
+    price = random.randint(4000, 75000)
+    gross = quantity * price
 
-cursor.execute("SELECT region_id FROM dim_region")
-region_ids = [x[0] for x in cursor.fetchall()]
+    discount = gross * random.uniform(0.05, 0.22)
+    net = gross - discount
+    tax = net * 0.18
+    profit = net * random.uniform(0.12, 0.32)
 
-cursor.execute("SELECT channel_id FROM dim_channel")
-channel_ids = [x[0] for x in cursor.fetchall()]
-
-cursor.execute("SELECT employee_id FROM dim_employee")
-employee_ids = [x[0] for x in cursor.fetchall()]
-
-sales = []
-for _ in range(80000):
-    qty = random.randint(1,10)
-    price = random.randint(1999, 4999)
-    gross = qty * price
-    discount = gross * random.uniform(0,0.2)
-    tax = gross * 0.18
-    net = gross - discount + tax
-
-    sales.append((
-        random.choice(date_ids),
-        random.choice(product_ids),
-        random.choice(customer_ids),
-        random.choice(region_ids),
-        random.choice(channel_ids),
-        random.choice(employee_ids),
-        qty, gross, discount, net, tax
+    batch.append((
+        date.strftime("%Y-%m-%d"),
+        year, month, quarter, is_weekend,
+        product[0], product[1], product[2], product[3],
+        region[0], region[1], region[2],
+        channel, department,
+        quantity, gross, discount, net, tax, profit
     ))
 
-cursor.executemany("""
-INSERT INTO fact_sales(
-date_id, product_id, customer_id, region_id, channel_id, employee_id,
-quantity, gross_amount, discount_amount, net_amount, tax_amount)
-VALUES (?,?,?,?,?,?,?,?,?,?,?)
-""", sales)
+    if len(batch) == 5000:
+        cursor.executemany("""
+        INSERT INTO sales_flat_analytics (
+            full_date,
+            year, month, quarter, is_weekend,
+            product_name, category, sub_category, brand,
+            market_region, country, state,
+            channel_name, department,
+            quantity, gross_amount, discount_amount,
+            net_amount, tax_amount, profit_estimate
+        ) VALUES (
+            ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+        )
+        """, batch)
 
-conn.commit()
+        conn.commit()
+        batch.clear()
+
+# Insert leftovers
+if batch:
+    cursor.executemany("""
+    INSERT INTO sales_flat_analytics VALUES (
+        NULL,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+    )
+    """, batch)
+    conn.commit()
+
 conn.close()
-
-print("✅ ~80,000 fact_sales rows inserted successfully")
+print("✅ 100K rows inserted successfully")

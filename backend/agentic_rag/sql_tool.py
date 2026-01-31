@@ -1,173 +1,133 @@
 import sqlite3
-from typing import Dict, List, Tuple
+import pandas as pd
+import os
 
-DB_PATH = r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\company_olap.db"
+DB_PATH = r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\analytics_flat.db"
+EXPORT_FOLDER = r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\output_sql"
+
+os.makedirs(EXPORT_FOLDER, exist_ok=True)
+
+ALLOWED_COLUMNS = [
+    "full_date","year","month","quarter","is_weekend",
+    "product_name","category","sub_category","brand",
+    "market_region","country","state",
+    "channel_name","department",
+    "quantity","gross_amount","discount_amount",
+    "net_amount","tax_amount","profit_estimate"
+]
+
+# -------------------------
+# SIMPLE CSV NAME HANDLER
+# -------------------------
+def get_next_csv_path(base_name="query_output.csv"):
+    base_path = os.path.join(EXPORT_FOLDER, base_name)
+
+    if not os.path.exists(base_path):
+        return base_path
+
+    name, ext = os.path.splitext(base_name)
+    counter = 1
+
+    while True:
+        new_name = f"{name}({counter}){ext}"
+        new_path = os.path.join(EXPORT_FOLDER, new_name)
+        if not os.path.exists(new_path):
+            return new_path
+        counter += 1
 
 
 # -------------------------
-# SCHEMA METADATA (CRITICAL)
+# BUILD SQL FROM INTENT
 # -------------------------
-
-FACT_TABLES = {
-    "fact_sales": {
-        "table": "fact_sales",
-        "joins": {
-            "dim_product": ("product_id", "product_id"),
-            "dim_date": ("date_id", "date_id"),
-            "dim_region": ("region_id", "region_id"),
-            "dim_channel": ("channel_id", "channel_id"),
-            "dim_employee": ("employee_id", "employee_id"),
-        },
-        "metrics": {
-            "quantity": "SUM(f.quantity)",
-            "gross_amount": "SUM(f.gross_amount)",
-            "discount_amount": "SUM(f.discount_amount)",
-            "net_amount": "SUM(f.net_amount)",
-            "tax_amount": "SUM(f.tax_amount)"
-        }
-    },
-
-    "fact_service_usage": {
-        "table": "fact_service_usage",
-        "joins": {
-            "dim_product": ("service_id", "product_id"),
-            "dim_date": ("date_id", "date_id"),
-            "dim_region": ("region_id", "region_id"),
-            "dim_customer": ("customer_id", "customer_id")
-        },
-        "metrics": {
-            "usage_count": "SUM(f.usage_count)",
-            "duration_minutes": "SUM(f.duration_minutes)",
-            "cost_incurred": "SUM(f.cost_incurred)"
-        }
-    },
-
-    "fact_finance_snapshot": {
-        "table": "fact_finance_snapshot",
-        "joins": {
-            "dim_date": ("date_id", "date_id"),
-            "dim_department": ("department_id", "department_id")
-        },
-        "metrics": {
-            "total_revenue": "SUM(f.total_revenue)",
-            "total_cost": "SUM(f.total_cost)",
-            "profit": "SUM(f.profit)",
-            "operational_expense": "SUM(f.operational_expense)"
-        }
-    }
-}
-
-
-DIMENSION_COLUMNS = {
-    "product_name": ("dim_product", "product_name"),
-    "product_type": ("dim_product", "product_type"),
-    "category": ("dim_product", "category"),
-    "sub_category": ("dim_product", "sub_category"),
-
-    "customer_type": ("dim_customer", "customer_type"),
-    "industry": ("dim_customer", "industry"),
-    "customer_segment": ("dim_customer", "customer_segment"),
-
-    "market_region": ("dim_region", "market_region"),
-    "country": ("dim_region", "country"),
-    "state": ("dim_region", "state"),
-    "city": ("dim_region", "city"),
-
-    "channel_name": ("dim_channel", "channel_name"),
-    "role": ("dim_employee", "role"),
-    "department": ("dim_employee", "department"),
-
-    "year": ("dim_date", "year"),
-    "quarter": ("dim_date", "quarter"),
-    "month": ("dim_date", "month"),
-    "full_date": ("dim_date", "full_date"),
-}
-
-
-# -------------------------
-# SQL BUILDER
-# -------------------------
-
-def build_sql_from_intent(intent: Dict) -> Tuple[str, List]:
-    fact_name = intent["tables"][0]
-    metrics = intent.get("metrics", [])
-    dimensions = intent.get("dimensions", [])
+def build_sql_from_intent(intent: dict):
+    select = intent.get("select", ["*"])
     filters = intent.get("filters", {})
+    group_by = intent.get("group_by", [])
 
-    fact = FACT_TABLES[fact_name]
+    # Validate SELECT columns
+    if "*" not in select:
+        select = [col for col in select if col in ALLOWED_COLUMNS]
+        if not select:
+            select = ["*"]
+    else:
+        select = ["*"]
+
+    select_clause = ", ".join(select)
+
+    sql = f"SELECT {select_clause} FROM sales_flat_analytics"
     params = []
 
-    select_clauses = []
-    group_by_clauses = []
-    join_clauses = []
+    # WHERE clause
+    where = []
 
-    # Metrics
-    for metric in metrics:
-        select_clauses.append(fact["metrics"][metric] + f" AS {metric}")
+    for col, value in filters.items():
 
-    # Dimensions
-    used_dimensions = set()
-    for dim in dimensions:
-        dim_table, dim_col = DIMENSION_COLUMNS[dim]
-        select_clauses.append(f"{dim_table}.{dim_col} AS {dim}")
-        group_by_clauses.append(f"{dim_table}.{dim_col}")
-        used_dimensions.add(dim_table)
+        # Special handling: date range
+        if col == "full_date_between" and isinstance(value, list) and len(value) == 2:
+            where.append("full_date BETWEEN ? AND ?")
+            params.extend(value)
 
-    # Joins
-    for dim_table, (fact_key, dim_key) in fact["joins"].items():
-        if dim_table in used_dimensions or any(
-            DIMENSION_COLUMNS.get(f, [None])[0] == dim_table for f in filters
-        ):
-            join_clauses.append(
-                f"LEFT JOIN {dim_table} ON f.{fact_key} = {dim_table}.{dim_key}"
-            )
+        # Normal filters
+        elif col in ALLOWED_COLUMNS:
+            if isinstance(value, list):
+                where.append(f"{col} BETWEEN ? AND ?")
+                params.extend(value)
+            else:
+                where.append(f"{col} = ?")
+                params.append(value)
 
-    # WHERE
-    where_clauses = []
-    for field, value in filters.items():
-        dim_table, dim_col = DIMENSION_COLUMNS[field]
-        where_clauses.append(f"{dim_table}.{dim_col} = ?")
-        params.append(value)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
 
-    # Assemble SQL
-    sql = f"""
-    SELECT
-        {", ".join(select_clauses)}
-    FROM {fact['table']} f
-    {' '.join(join_clauses)}
-    """
+    # GROUP BY
+    if group_by:
+        valid_group = [g for g in group_by if g in ALLOWED_COLUMNS]
+        if valid_group:
+            sql += " GROUP BY " + ", ".join(valid_group)
 
-    if where_clauses:
-        sql += " WHERE " + " AND ".join(where_clauses)
-
-    if group_by_clauses:
-        sql += " GROUP BY " + ", ".join(group_by_clauses)
-
-    return sql.strip(), params
+    return sql, params
 
 
 # -------------------------
-# RUNNER
+# RUN INTENT QUERY → CSV
 # -------------------------
+def run_intent_query(intent: dict):
+    try:
+        sql, params = build_sql_from_intent(intent)
 
-def run_sql(intent: Dict) -> str:
-    query, params = build_sql_from_intent(intent)
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_sql_query(sql, conn, params=params)
+        conn.close()
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    conn.close()
+        # Generate simple filename
+        file_path = get_next_csv_path("query_output.csv")
 
-    return str(rows)
+        df.to_csv(file_path, index=False)
 
-fake_intent_2 = {
-    "fact": "fact_sales",
-    "metrics": ["net_amount"],
-    "dimensions": ["month", "year"],
-    "filters": {
-        "product_name": "SmartX Watch"
-    }
-}
+        return file_path  # ✅ RETURN ONLY CSV PATH
 
-#print(run_sql(fake_intent_2))
+    except Exception as e:
+        print("⚠️ SQL failed, running fallback:", e)
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            df = pd.read_sql_query("SELECT * FROM sales_flat_analytics LIMIT 1000", conn)
+            conn.close()
+
+            file_path = get_next_csv_path("fallback_output.csv")
+            df.to_csv(file_path, index=False)
+
+            return file_path
+
+        except:
+            return None
+
+def run_sql(intent: dict):
+    
+    print("The dataset extracted and saved at: ", "F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\data\output_sql")
+    return run_intent_query(intent)
+# -------------------------
+# TEST INTENT
+# -------------------------
+#intent =   {'select': ['*'], 'filters': {'month': '4','year':'2023','product_name':'SmartX Watch'}, 'group_by': [], 'metrics': [], 'aggregation': None, 'limit': 1000}
+#print("CSV Path:", run_intent_query(intent))

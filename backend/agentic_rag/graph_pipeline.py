@@ -1,7 +1,13 @@
 from langgraph.graph import StateGraph
 from typing import TypedDict
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 
 from backend.agentic_rag.planner import plan_retrieval
+
 from backend.agentic_rag.sql_tool import run_sql
 from backend.agentic_rag.vector_tool import run_vector
 from backend.agentic_rag.graph_tool import get_graph_context
@@ -58,8 +64,8 @@ def run_agent(query: str):
     return agent.invoke({"query": query})
 
 
-if __name__ == "__main__":
-    result = agent.invoke({
-        "query": "What is the total sales of smartx headset?",
-    })
-    print(result["answer"])
+#if __name__ == "__main__":
+    #result = agent.invoke({
+    #    "query": "give me the data of sales of 2023 ",
+    #})
+#print(result["answer"])
