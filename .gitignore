@@ -33,3 +33,8 @@ backend/data
 # OS
 .DS_Store
 Thumbs.db
+# Ignore all outputs
+backend/agents/data_agent/outputs/*
+
+# But keep the folder structure
+!backend/agents/data_agent/outputs/.gitkeep
