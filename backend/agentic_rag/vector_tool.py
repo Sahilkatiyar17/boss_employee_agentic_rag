@@ -7,7 +7,7 @@ from langchain_chroma import Chroma
 
 persist_directory = (
     "F:/sahil/2025-2026/Project_DS/"
-    "boss_employee_agentic_rag/backend/data/graph_chroma"
+    "boss_employee_agentic_rag/backend/data/chroma"
 )
 
 embeddings = HuggingFaceEmbeddings(
