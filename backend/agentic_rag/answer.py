@@ -1,9 +1,9 @@
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-
+import os  
 load_dotenv()
-
-answer_llm = ChatGroq(model="openai/gpt-oss-120b")
+AGENTIC_API_KEY = os.environ["AGENTIC_API_KEY"]
+answer_llm = ChatGroq(model="openai/gpt-oss-120b", api_key=AGENTIC_API_KEY)
 
 def generate_answer(query, context):
     return answer_llm.invoke(

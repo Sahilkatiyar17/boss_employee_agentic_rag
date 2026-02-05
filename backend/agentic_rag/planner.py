@@ -4,9 +4,11 @@ from langchain_core.output_parsers import JsonOutputParser
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
+import os  
 load_dotenv()
-llm=ChatGroq(model_name="openai/gpt-oss-120b")
-llm
+AGENTIC_API_KEY = os.environ["AGENTIC_API_KEY"]
+llm=ChatGroq(model_name="openai/gpt-oss-120b",api_key=AGENTIC_API_KEY)
+
 
 
 
@@ -109,6 +111,10 @@ Identify:
 - ENTITIES (product names, departments, issues)
 - RELATIONS (AFFECTED_BY, CONNECTED_TO, RESPONDS_TO, etc.)
 
+example: "Give me a list of products that are affected by a specific issue",
+example: "Give me the features of a specific product"
+example: "How something is connected to something else"
+
 ---------------------------
 OUTPUT FORMAT (STRICT JSON)
 ---------------------------
@@ -152,5 +158,5 @@ def plan_retrieval(query: str) -> dict:
     print(result)
     return result 
 
-plan=plan_retrieval("Give me 15K raw sales rows from 2023")
-print(plan)
+#plan=plan_retrieval("Give me 15K raw sales rows from 2023")
+#print(plan)

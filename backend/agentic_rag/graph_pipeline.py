@@ -64,7 +64,7 @@ def run_agent(query: str):
     return agent.invoke({"query": query})
 
 
-print(run_agent("What are the vision,mission, goals of the Smart tech ?"))
+#print(run_agent("What are the vision,mission, goals of the Smart tech ?"))
 
 #if __name__ == "__main__":
     #result = agent.invoke({

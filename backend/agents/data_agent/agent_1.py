@@ -27,7 +27,7 @@ sys.path.append(r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backen
 from agentic_rag.graph_pipeline import run_agent
 #from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
-
+DATA_API_KEY = os.environ["GROQ_API_KEY_DATA"]
 
 
 OUTPUT_DIR = r"F:\sahil\2025-2026\Project_DS\boss_employee_agentic_rag\backend\agents\data_agent\outputs"
@@ -44,12 +44,14 @@ MAX_RETRIES = 3
 #)
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
-    temperature=0
+    temperature=0,
+    api_key=DATA_API_KEY
 )
 
 llm2 = ChatGroq(
     model="llama-3.3-70b-versatile",
-    temperature=0.2
+    temperature=0.2,
+    api_key=DATA_API_KEY
 )
 llm1 = HuggingFaceEndpoint(repo_id = 'codellama/CodeLlama-34b-Python-hf',
                           task = 'text-generation'
@@ -497,7 +499,7 @@ graph.add_edge('tools', 'chat_node')
 data_agent = graph.compile()
 
 
-result = data_agent.invoke({
+"""result = data_agent.invoke({
     "messages": [
         HumanMessage(content="do a deep analysis of the data and Analyze the sales data of 2023 and generate atleast 5 charts or graphs")
     ],
@@ -510,4 +512,4 @@ result = data_agent.invoke({
 print("\n=== FINAL OUTPUT ===\n")
 print(result["messages"][-1].content)
 print()
-print(result)
+print(result) """
