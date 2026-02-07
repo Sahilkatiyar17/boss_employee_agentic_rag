@@ -8,16 +8,5 @@ st.set_page_config(
 
 st.title("🤖 Agentic AI Playground")
 
-# Sidebar navigation
-page = st.sidebar.radio(
-    "Select Mode",
-    ["Agentic RAG", "Boss–Employee Agent"]
-)
-
-if page == "Agentic RAG":
-    from pages.agentic_rag import render
-    render()
-
-elif page == "Boss–Employee Agent":
-    from pages.boss_employee import render
-    render()
+from pages.boss_employee import render
+render()

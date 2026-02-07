@@ -216,7 +216,7 @@ def research_node(state: State) -> dict:
     for e in pack.evidence:
         if e.url:
             dedup[e.url] = e
-    print("research")
+    print("research_node")
     return {"evidence": list(dedup.values())}
 
 # -----------------------------
@@ -279,7 +279,7 @@ def orchestrator_node(state: State) -> dict:
             ),
         ]
     )
-    print("orch")
+    print("orchestrator_node")
     return {"plan": plan}
 
 # -----------------------------
@@ -376,7 +376,7 @@ def worker_node(payload: dict) -> dict:
             ),
         ]
     ).content.strip()
-    print("worker")
+    print("worker_node")
     return {"sections": [(task.id, section_md)]}
 
 # -----------------------------
