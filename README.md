@@ -34,7 +34,7 @@ Both agents use the **Agentic RAG pipeline** as a tool for retrieving relevant i
 - **Employee Agents** perform tasks using the **Agentic RAG pipeline**.  
 - **Frontend** displays real-time logs of agent operations.  
 - Observability is enhanced using **LangSmith**, which helps track errors, latency, and workflow execution.  
-  - **Latency:** ~11–15 seconds per query depending on data complexity.
+  - **Latency:** ~11–50 seconds per query depending on data complexity.
 
 ---
 
