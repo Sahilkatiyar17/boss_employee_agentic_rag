@@ -1,7 +1,7 @@
 # Boss-Employee Agentic RAG System
 
 <!-- Add your YouTube Live Video link here -->
-**🎥 Live Demo:** [[Youtube link]](https://youtu.be/99FtCAakQxo)
+**🎥 Video Demo:** [[Youtube link]](https://youtu.be/99FtCAakQxo)
 
 ---
 
