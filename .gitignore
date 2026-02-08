@@ -8,7 +8,10 @@ venv/
 .env.*
 
 # Data (IMPORTANT)
-data/
+data/*
+
+# But keep the folder
+!data/.gitkeep
 datasets/
 raw_data/
 processed_data/
