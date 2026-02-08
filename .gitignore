@@ -15,7 +15,10 @@ data/*
 datasets/
 raw_data/
 processed_data/
-backend/data 
+backend/data/*
+!backend/data/.gitkeep
+
+
 # Common data formats
 *.csv
 *.tsv
